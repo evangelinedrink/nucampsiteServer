@@ -94,5 +94,161 @@ campsiteRouter.route("/:campsiteId")
      .catch(err => next(err)); //Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
 });
 
+//Endpoinds for /:campsiteId/comments
+campsiteRouter.route("/:campsiteId/comments") 
+.get((req,res, next)=> {
+    Campsite.findById(req.params.campsiteId)//The client is looking for a single campsite and the campsite id has been given as a route parameter. Always look at the documentation for libraries to understand what each part means. 
+    .then(campsite => { //Access the results of the find method as campsites.
+        //Getting just one campsite, not all the campsite
+        if (campsite) {
+            res.statusCode= 200;
+            res.setHeader("Content-Type", "application/json"); 
+            res.json(campsite.comments); //This method will send json data to the client in the response stream and will automatically close the response stream afterward. Will not need the res.end method below
+        } else {
+            err= new Error(`Campsite ${req.params.campsiteId} not found`);
+            err.status= 404;
+            return next (err);
+        }   
+    })
+    .catch(err => next(err));//Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
+})
+.post((req,res, next) => {
+    Campsite.findById(req.params.campsiteId)//The client is looking for a single campsite and the campsite id has been given as a route parameter. Always look at the documentation for libraries to understand what each part means. 
+    .then(campsite => { //Access the results of the find method as campsites.
+        //Getting just one campsite, not all the campsite
+        if (campsite) {
+            campsite.comments.push(req.body); //Adding the comment for the campsite in the comment's array, which is found in the req.body. This will only change the comments array in the application's memory, not in the comments subdocument in the MongoDB's database.
+            campsite.save() //Saves the new comment in the comment's array located in the MongoDB's database (in the comment's subdocument). This is not a static method (it does create an object, an array).
+            .then(campsite => { //.save() method above returns a Promise, so we can connect a .then method if the Promise is fulfilled.   
+                res.statusCode= 200;
+                res.setHeader("Content-Type", "application/json"); 
+                res.json(campsite); //This method will send json data to the client in the response stream and will automatically close the response stream afterward. Will not need the res.end method.
+            })
+            .catch(err => next(err));
+        } else {
+            err= new Error(`Campsite ${req.params.campsiteId} not found`);
+            err.status= 404;
+            return next (err);
+        }   
+    })
+    .catch(err => next(err));//Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
+})
+.put((req,res)=> { //This handler will be left as is because PUT is not allowed. 
+    res.statusCode= 403;
+    res.end(`PUT operation not supported on /campsites/${req.params.campsiteId}/comments`);
+})
+.delete((req, res, next)=> { //next() method is used for error handling
+    Campsite.findById(req.params.campsiteId)//The client is looking for a single campsite and the campsite id has been given as a route parameter. Always look at the documentation for libraries to understand what each part means. 
+    .then(campsite => { //Access the results of the find method as campsites.
+        //Getting just one campsite, not all the campsite
+        if (campsite) {
+            //Going to delete every comment in the campsite's comments array. To do this, we will use a For loop.
+            for (let i=(campsite.comments.length-1); i>=0; i--) {
+                campsite.comments.id(campsite.comments[i]._id).remove(); //Access each comment in the comment's array, one at a time. Using a method's id() and remove()
+            }
+            campsite.save() //Saves the new comment in the comment's array located in the MongoDB's database (in the comment's subdocument). This is not a static method (it does create an object, an array).
+            .then(campsite => { //.save() method above returns a Promise, so we can connect a .then method if the Promise is fulfilled.   
+                res.statusCode= 200;
+                res.setHeader("Content-Type", "application/json"); 
+                res.json(campsite); //This method will send json data to the client in the response stream and will automatically close the response stream afterward. Will not need the res.end method.
+            })
+            .catch(err => next(err));
+        } else {
+            err= new Error(`Campsite ${req.params.campsiteId} not found`);
+            err.status= 404;
+            return next (err);
+        }
+    })
+    .catch(err => next(err));//Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
+});  
+    /*Campsite.deleteMany() //Using the deleteMany() static method which will pass in an empty parameter list, which will result in every document in the campsite's collection to be deleted.
+    .then(response => { //Access the return value of the deleteMany() method, which will give us information about the response object about how many documents were deleted.
+        res.statusCode= 200;
+        res.setHeader("Content-Type", "application/json");
+        res.json(response); //This will send the response back to the user with json type data.
+    }) */
+
+//Endpoinds for /:campsiteId/comments/:commentId
+campsiteRouter.route("/:campsiteId/comments/:commentId") //This will handle request for a specific comment for a certain campsite
+.get((req,res, next)=> {
+    Campsite.findById(req.params.campsiteId)//The client is looking for a single campsite and the campsite id has been given as a route parameter. Always look at the documentation for libraries to understand what each part means. 
+    .then(campsite => { //Access the results of the find method as campsites.
+        //Getting just one campsite, not all the campsite
+        if (campsite && campsite.comments.id(req.params.commentId)) {
+            res.statusCode= 200;
+            res.setHeader("Content-Type", "application/json"); 
+            res.json(campsite.comments.id(req.params.commentId)); //This method will send json data to the client in the response stream and will automatically close the response stream afterward. Will not need the res.end method below
+        } else if (!campsite) { //This else if block is if there is no campsite
+            err= new Error(`Campsite ${req.params.campsiteId} not found`);
+            err.status= 404;
+            return next (err);
+        } else {
+            err= new Error(`Comment ${req.params.commentId} not found`);
+            err.status= 404;
+            return next (err);
+        }   
+    })
+    .catch(err => next(err));//Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
+})
+.post((req,res) => { //Post is not supported for the comment's Id
+   res.statusCode= 403;
+   res.end(`POST operation not supported on /campsites/${req.params.campsiteId}/comments/${req.params.commentId}`);
+})
+.put((req,res, next)=> { //PUT request updates existing data. In this case, PUT request will update the comment by letting the user update the comment text and the rating fields.
+        Campsite.findById(req.params.campsiteId)//The client is looking for a single campsite and the campsite id has been given as a route parameter. Always look at the documentation for libraries to understand what each part means. 
+        .then(campsite => { //Access the results of the find method as campsites.
+            //Getting just one campsite, not all the campsite
+            if (campsite && campsite.comments.id(req.params.commentId)) {
+                if (req.body.rating) { //Rating for the comment can be changed. Separate if statements because both of them will be checked at a time. The user might only change one of these (either comment or rating), so we need two if statements.
+                    campsite.comments.id(req.params.commentId).rating= req.body.rating;
+                }
+                if (req.body.text) { //The comment can be modified. Separate if statements because both of them will be checked at a time. The user might only change one of these (either comment or rating), so we need two if statements.
+                    campsite.comments.id(req.params.commentId).text = req.body.text;
+                }
+                campsite.save() //Saves the changes in the comments on the MongoDB database.
+                .then(campsite => { //If the save() operation succeeds, it will send back a response back to the client.
+                    res.statusCode= 200;
+                    res.setHeader("Content-Type", "application/json");
+                    res.json(campsite);
+                }) 
+                .catch(err => next(err)); //Catches any errors if the save() method does not succeed.
+            } else if (!campsite) { //This else if block is if there is no campsite
+                err= new Error(`Campsite ${req.params.campsiteId} not found`);
+                err.status= 404;
+                return next (err);
+            } else {
+                err= new Error(`Comment ${req.params.commentId} not found`);
+                err.status= 404;
+                return next (err);
+            }   
+        })
+        .catch(err => next(err));//Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
+})
+.delete((req, res, next)=> { //next() method is used for error handling
+    Campsite.findById(req.params.campsiteId)//The client is looking for a single campsite and the campsite id has been given as a route parameter. Always look at the documentation for libraries to understand what each part means. 
+    .then(campsite => { //Access the results of the find method as campsites.
+        //Getting just one campsite, not all the campsite
+        if (campsite && campsite.comments.id(req.params.commentId)) {
+           campsite.comments.id(req.params.commentId).remove();
+            campsite.save() //Saves the changes in the comments on the MongoDB database.
+            .then(campsite => { //If the save() operation succeeds, it will send back a response back to the client.
+                res.statusCode= 200;
+                res.setHeader("Content-Type", "application/json");
+                res.json(campsite);
+            }) 
+            .catch(err => next(err)); //Catches any errors if the save() method does not succeed.
+        } else if (!campsite) { //This else if block is if there is no campsite
+            err= new Error(`Campsite ${req.params.campsiteId} not found`);
+            err.status= 404;
+            return next (err);
+        } else {
+            err= new Error(`Comment ${req.params.commentId} not found`);
+            err.status= 404;
+            return next (err);
+        }   
+    })
+    .catch(err => next(err));//Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
+});  
+
 //Export Campsite Router
 module.exports= campsiteRouter;
