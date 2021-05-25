@@ -14,11 +14,11 @@ campsiteRouter.route("/") //The / means for the campsite path
     Campsite.find()//Static method to query the database.  Will find all the campsites since there is not specific campsite specified in the parenthesis. //Client is asking us to send data for all of the campsites
     .then(campsites => { //Access the results of the find method as campsites.
         res.statusCode= 200;
-        res.setHeader("Content-Type", "application/json"); 
+        res.setHeader("Content-Type", "application/json"); //Send the request content in JSON form. This parameter has to be set to send the request body in JSON form.
         res.json(campsites); //This method will send json data to the client in the response stream and will automatically close the response stream afterward. Will not need the res.end method below
     })
     //res.end("Will send all the campsites to you");  //Just shows that we can access this code for now
-    .catch(err => next(err));//Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
+    .catch(err => next(err)); //Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
 })
 .post((req,res, next) => {
     Campsite.create(req.body) //Create a new campsite document and save it to the MongoDB server. Create this document with the req.body, which should contain the information of the campsite to Post from the client. Through this create() method, Mongoose will make sure that it fits the schema that was defined.
