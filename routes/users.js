@@ -1,5 +1,6 @@
 const express = require('express');
 const User= require("../models/user"); //Going up one directory, so need to use ../
+const passport= require("passport"); //Importing Passport
 const router = express.Router();
 
 /* GET users listing. */
@@ -7,8 +8,28 @@ router.get('/', function(req, res, next) {
   res.send('respond with a resource');
 });
 
-//Let's a new user register on the website
-router.post("/signup", (req, res, next) => {
+router.post("/signup", (req, res) => {
+    User.register(
+        new User({username: req.body.username}), //the {username: req.body.username} is the username that was given by the client
+        req.body.password, //the {password: req.body.password} is the password that was given by the client
+        err =>{
+            if (err) {
+              res.statusCode= 500; //Internal server error
+              res.setHeader("Content-Type", "application/json");
+              res.json({err:err}); //Gives us information about the error
+            } else { //If there was no error
+                passport.authenticate("local")(req, res, () => {
+                  res.statusCode= 200;
+                  res.setHeader("Content-Type", "application/json");
+                  res.json({success: true, status: "Registration Successful!"});
+                });
+            }
+        }
+    );
+});
+
+//Let's a new user register on the website: This was used before downloading Passport
+/*router.post("/signup", (req, res, next) => {
     //Check to see if username has not already been taken
     User.findOne({username: req.body.username})
     .then(user => {
@@ -31,8 +52,17 @@ router.post("/signup", (req, res, next) => {
     })
     .catch(err => next(err)); //Chain a catch if the findOne() method returns a rejected promise. A rejected promise from this means that something went wrong with the findOne() method. 
 }); 
+*/
 
-router.post("/login", (req, res, next) => {
+router.post("/login", passport.authenticate("local"), (req, res) => {
+  //Sent a response to the client if the login was successful
+  res.statusCode= 200;
+  res.setHeader("Content-Type", "application/json");
+  res.json({success: true, status: "You are successfully logged in!"});
+});
+
+//Below code was used when we didn't use Passport
+/*router.post("/login", (req, res, next) => { //Middleware is being placed in this function
     //Check to see if the user is already logged in (they have been authenticated)
     if (!req.session.user) { //req.session.user is already filled in if there was a cookie with the information already filled in.
       const authHeader= req.headers.authorization;
@@ -75,6 +105,7 @@ router.post("/login", (req, res, next) => {
         res.end("You are already authenticated!");
     }
 });
+*/
 
 //This is for logging out the user. Get() method is used because the client isn't submitting any information to the server, they are just saying I'm logging out.
 router.get("/logout", (req, res, next) => {

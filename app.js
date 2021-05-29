@@ -6,6 +6,8 @@ var path = require('path');
 var logger = require('morgan'); //Morgan Middleware shows what is happening in the console in the BASH Terminal (like if there is a POST, GET, etc.)
 const session= require("express-session");//Importing Express Session
 const FileStore= require("session-file-store")(session);//Importing File Store. There are 2 sets of parameters after a function call like this. JavaScript can return another function. Require function is returning another function as its return value. Then we call the return function with the second parameter list (the second argument is "session")
+const passport= require("passport");
+const authenticate= require("./authenticate"); //File that we added to our project
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -56,6 +58,10 @@ app.use(session({
   store: new FileStore(),//Create a new file store as an object that we cna use to save our session information to the server's hard disk instead of the applicaiton's memory.
 }))
 
+//These are used when using session based authentification.  Two middleware from Passport to see if there is an existing data for that client. If so, it will load into the request.
+app.use(passport.initialize());
+app.use(passport.session());
+
 //These two lines of code are placed before the auth function because we want user to login before everything else.
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
@@ -65,7 +71,7 @@ app.use('/users', usersRouter);
 function auth(req, res, next) {
   
   //The Session middleware wil automatically add a property called "session" to the request message.  We will see what it contains in the line below by console logging that property of req.session.
-  console.log(req.session);
+  console.log(req.user);
   
   //console.log(req.headers); //This console logs the request header
   
@@ -73,18 +79,12 @@ function auth(req, res, next) {
   //if(!req.signedCookies.user) { //signedCookies property of the request object is provided by the cookie parser. It will automatically parse a signed cookie from the request. If the cookie is not properly signed, it will return a value of False. The user property is something that will be added to the signed cookie.
   
   
-  if(!req.session.user) { //Checking to see if the client is not authenticated
+  if(!req.user) { //Checking to see if the client is not authenticated
       const err= new Error("You are not authenticated!");
       err.status= 401; //Error code when authentication is not given
       return next(err); //Server will send the error message back and ask for authentication from the client
   } else { //If there is a signed cookie in the incoming request
-    if(req.session.user ==="authenticated") { //If this is true, grant access to the client to the next middleware function
       return next();//Going to the next middleware function
-    } else {
-        const err = new Error("You are not authenticated!"); //Goes to the Express error handler
-        err.status= 401;
-        return next(err);
-    }
   }
 }
 
