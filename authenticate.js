@@ -41,5 +41,16 @@ exports.jwtPassport= passport.use(
     )
 );
 
+//Creating verifyAdmin() function
+exports.verifyAdmin = (req, res, next) => {
+    if(req.user.admin===true) { //Passport has loaded a user property to the req object. We want to make sure that the user is an admin, that admin: true in user.js. Syntax is based off of req.body.firstname in users.js file.
+        return next();
+    } else { //If the user is not an admin, it will display an error
+        const err= new Error("You are not authorized to perform this operation!");
+        err.status= 403;
+        return next(err);
+    }
+};
 
-exports.verifyUser= passport.authenticate("jwt", {session: false});
+exports.verifyUser= passport.authenticate("jwt", {session: false}); //Verifying incoming request is comving from a verified user.
+
