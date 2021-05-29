@@ -1,6 +1,10 @@
 const express= require("express");
 const Partner = require("../models/partner"); //Importing the Partner model to this file. ../ lets the computer know to go up one folder 
+const authenticate= require("../authenticate"); //Control routes with authentication, protecting the campsiteRouter with code from authenticate.js
 const partnerRouter= express.Router();
+
+/*Verify that the user is authenticated for every endpoint in this router, except for the Get endpoints.  Get request is a simple read only operation, it doesn't change anything in the server side. 
+This will be done using the authenticate.verifyUser parameter.*/
 
 partnerRouter.route("/") //The /partners route is handled in the partnerRouter with just a "/"
 .get((req, res, next)=> {
@@ -12,7 +16,7 @@ partnerRouter.route("/") //The /partners route is handled in the partnerRouter w
     })
     .catch(err => next(err)); //Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
 })
-.post((req,res, next) => {
+.post(authenticate.verifyUser, (req,res, next) => {
     Partner.create(req.body) //Create a new partner document and save it to the MongoDB server. Create this document with the req.body, which should contain the information of the partner to Post from the client. Through this create() method, Mongoose will make sure that it fits the schema that was defined.
     .then(partner => { //The create() method will return a JavaScript Promise, so we can use .then() method to handle a fulfilled Promise.
         console.log("Partner Created", partner);  //partner will hold information about the document that was posted. Inside of this console.log, we will get information about the partner.
@@ -22,11 +26,11 @@ partnerRouter.route("/") //The /partners route is handled in the partnerRouter w
     })
     .catch(err => next(err)); //Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
 })
-.put((req,res)=> {
+.put(authenticate.verifyUser, (req,res)=> {
     res.statusCode= 403;
     res.end("PUT operation not supported on /partners");
 })
-.delete((req, res, next)=> {
+.delete(authenticate.verifyUser, (req, res, next)=> {
     Partner.deleteMany() //Using the deleteMany() static method which will pass in an empty parameter list (nothing in parenthesis), which will result in every document in the partner's collection to be deleted.
     .then(response => { //Access the return value of the deleteMany() method, which will give us information about the response object about how many documents were deleted.
         res.statusCode= 200;
@@ -47,11 +51,11 @@ partnerRouter.route("/:partnerId")
     })
     .catch(err => next(err));
 })
-.post((req,res) => {
+.post(authenticate.verifyUser, (req,res) => {
     res.statusCode=403;
     res.end(`POST operation not supported on /partners/${req.params.partnerId}.`);
 })
-.put((req,res, next) => {
+.put(authenticate.verifyUser, (req,res, next) => {
     //Below the first parameter is the partner id (req.params.partnerId), the second argument is the data from the request body ($set: req.body)
     //Third parameter is {new:true}, so that we get back information about the updated document.
     Partner.findByIdAndUpdate(req.params.partnerId, { //req.params.partnerId is the saved route parameter that has the information on the partner's ID
@@ -64,7 +68,7 @@ partnerRouter.route("/:partnerId")
     })
     .catch(err => next(err)); //Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
 })
-.delete((req,res, next) => {
+.delete(authenticate.verifyUser, (req,res, next) => {
     //Method used for deleting a single partner by its ID is called: findByIdAndDelete() method
     Partner.findByIdAndDelete(req.params.partnerId) //req.params.partnerId is the saved route parameter that has the information on the partner's ID
     .then(response => { //When the partnerId is successfully found, the .then will then start working (result from the JavaScript Promise)

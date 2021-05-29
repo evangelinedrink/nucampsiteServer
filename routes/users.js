@@ -1,6 +1,7 @@
 const express = require('express');
 const User= require("../models/user"); //Going up one directory, so need to use ../
 const passport= require("passport"); //Importing Passport
+const authenticate= require("../authenticate");
 const router = express.Router();
 
 /* GET users listing. */
@@ -55,10 +56,12 @@ router.post("/signup", (req, res) => {
 */
 
 router.post("/login", passport.authenticate("local"), (req, res) => {
+  //Once the user has been authenticated with their username and password, then we will issue a token to the user by using the get.Token() method that is located in the authenticate.js file
+  const token= authenticate.getToken({_id: req.user._id});
   //Sent a response to the client if the login was successful
   res.statusCode= 200;
   res.setHeader("Content-Type", "application/json");
-  res.json({success: true, status: "You are successfully logged in!"});
+  res.json({success: true, token: token, status: "You are successfully logged in!"}); //Once we have the token, we include it in our response to the client by adding a token property to the response (token: token). 
 });
 
 //Below code was used when we didn't use Passport
