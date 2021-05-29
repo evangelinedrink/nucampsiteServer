@@ -41,7 +41,10 @@ exports.jwtPassport= passport.use(
     )
 );
 
-//Creating verifyAdmin() function
+//verifyUser() function makes sure that the client is a user and has entered their username and password.
+exports.verifyUser= passport.authenticate("jwt", {session: false}); //Verifying incoming request is comving from a verified user.
+
+//Creating verifyAdmin() function. Making sure the user is an admin.
 exports.verifyAdmin = (req, res, next) => {
     if(req.user.admin===true) { //Passport has loaded a user property to the req object. We want to make sure that the user is an admin, that admin: true in user.js. Syntax is based off of req.body.firstname in users.js file.
         return next();
@@ -51,6 +54,3 @@ exports.verifyAdmin = (req, res, next) => {
         return next(err);
     }
 };
-
-exports.verifyUser= passport.authenticate("jwt", {session: false}); //Verifying incoming request is comving from a verified user.
-
