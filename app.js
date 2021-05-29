@@ -56,6 +56,10 @@ app.use(session({
   store: new FileStore(),//Create a new file store as an object that we cna use to save our session information to the server's hard disk instead of the applicaiton's memory.
 }))
 
+//These two lines of code are placed before the auth function because we want user to login before everything else.
+app.use('/', indexRouter);
+app.use('/users', usersRouter);
+
 //Authentification Middleware will be placed before the Express.static() middleware so that users have to authenticate their credentials before accessing the Express server.
 //auth function, like all Express middleware functions, has the req, res, next (optional) paremeter
 function auth(req, res, next) {
@@ -68,43 +72,13 @@ function auth(req, res, next) {
   //If request does not contained the signed cookie nor its value, it will be parsed as false. This means the user has not authenticated their username and password.
   //if(!req.signedCookies.user) { //signedCookies property of the request object is provided by the cookie parser. It will automatically parse a signed cookie from the request. If the cookie is not properly signed, it will return a value of False. The user property is something that will be added to the signed cookie.
   
-  //Using Expression Session's cookies instead of Cookie-Parser
-  if(!req.session.user) {
-    const authHeader= req.headers.authorization;
-    if(!authHeader) {//If authHeader is null, this means the user has not placed a username or password in.
+  
+  if(!req.session.user) { //Checking to see if the client is not authenticated
       const err= new Error("You are not authenticated!");
-      res.setHeader("WWW-Authenticate", "Basic"); //This lets the client know that the server is requesting authentication and the authentication method being requested is Basic 
       err.status= 401; //Error code when authentication is not given
       return next(err); //Server will send the error message back and ask for authentication from the client
-    }
-    //If the client then gives their username and password, an authorization header will then be submitted to the server
-    //Buffer global class in Node is one of the few classes in Node that we can just use.
-    //Buffer.from() just decodes the username and password from Base-64 encoded string
-    //Argument inside of Buffer.from: It takes the authorization header and extract the username and password from it. Then it places it in the auth array as username and password.
-    const auth= Buffer.from(authHeader.split(" ")[1], "base64").toString().split(":");
-    const user= auth[0]; //Getting the client's username from the auth array
-    const pass = auth[1]; //Getting the client's password from the auth array
-    
-    //Basic Validation 
-    if(user ==="admin" && pass ==="password") {
-      //Setting up a cookie when the username and password is correct
-      //res.cookie is part of Express response object API. res.cookie is used to create a new cookie by passing it the name we want to use in the cookie.
-      //The first argument in res.cookie is the name we want to use for the cookie, in this case it is "user"
-      //Second argument is value to store in the name property.
-      //Third argumnet is optional and contains configuration values. signed: true means we let Express know to use the secret key from Cookie Parser to create a signed cookie.
-        //res.cookie("user", "admin", {signed: true}); <- no longer using res.cookie because we are using Express Session
-        
-        //Session will now know that the username is admin.
-        res.session.user= "admin";//Session will now know that the username is admin.
-        return next(); //The user is authorized to use the server
-    } else { //An error shows if the user doesn't type admin and password for the username and password
-        const err = new Error("You are not authenticated!"); //Goes to the Express error handler
-        res.setHeader("WWW-Authenticate", "Basic");
-        err.status= 401;
-        return next(err);
-    }
   } else { //If there is a signed cookie in the incoming request
-    if(req.session.user ==="admin") { //If this is true, grant access to the client to the next middleware function
+    if(req.session.user ==="authenticated") { //If this is true, grant access to the client to the next middleware function
       return next();//Going to the next middleware function
     } else {
         const err = new Error("You are not authenticated!"); //Goes to the Express error handler
@@ -113,11 +87,11 @@ function auth(req, res, next) {
     }
   }
 }
+
 app.use(auth); //Lets the auth middleware function run before the Express.static() middleware function. auth function makes sure that the user has inputted their credentials (authetnication)
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
+
 //Add the calls for the three routers, this will be used to call the routes on Postman using "http://localhost:3000/campsites"
 app.use("/campsites", campsiteRouter);
 app.use("/promotions", promotionRouter);
