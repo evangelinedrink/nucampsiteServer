@@ -2,8 +2,10 @@
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
-var cookieParser = require('cookie-parser'); //Middleware of Cookie-Parser
+//var cookieParser = require('cookie-parser'); //Middleware of Cookie-Parser
 var logger = require('morgan'); //Morgan Middleware shows what is happening in the console in the BASH Terminal (like if there is a POST, GET, etc.)
+const session= require("express-session");//Importing Express Session
+const FileStore= require("session-file-store")(session);//Importing File Store. There are 2 sets of parameters after a function call like this. JavaScript can return another function. Require function is returning another function as its return value. Then we call the return function with the second parameter list (the second argument is "session")
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -42,13 +44,32 @@ app.set('view engine', 'jade');
 app.use(logger('dev')); //Morgan Logger: logs information in the console
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser("12345-67890-09876-54321")); //Cookie Parser is set up here to be used.  The secret key for the cookie parser is placed inside of the parenthesis. Secret key doesn't have to be meaningful, it is a key that is sent to the cookie parser that will encrypt the information.
+//Can't use Cookie-Parser and Express Session together because Express Session has its own cookies.
+//app.use(cookieParser("12345-67890-09876-54321")); //Cookie Parser is set up here to be used.  The secret key for the cookie parser is placed inside of the parenthesis. Secret key doesn't have to be meaningful, it is a key that is sent to the cookie parser that will encrypt the information.
+
+//Express Session Middleware
+app.use(session({
+  name: "session-id",
+  secret: "12345-67890-09876-54321",
+  saveUninitialized: false, //When a new session is created, but no updates are made to it, then at the end of the request it won't get saved. No cookie will be sent to the client.
+  resave: false, //Once session has been created, updated and saved, it will continue to be re-saved even when the request didn't make any updates to be saved. This will make the session active, so it doesn't get deleted when the user is making requests.
+  store: new FileStore(),//Create a new file store as an object that we cna use to save our session information to the server's hard disk instead of the applicaiton's memory.
+}))
+
 //Authentification Middleware will be placed before the Express.static() middleware so that users have to authenticate their credentials before accessing the Express server.
 //auth function, like all Express middleware functions, has the req, res, next (optional) paremeter
 function auth(req, res, next) {
+  
+  //The Session middleware wil automatically add a property called "session" to the request message.  We will see what it contains in the line below by console logging that property of req.session.
+  console.log(req.session);
+  
   //console.log(req.headers); //This console logs the request header
+  
   //If request does not contained the signed cookie nor its value, it will be parsed as false. This means the user has not authenticated their username and password.
-  if(!req.signedCookies.user) { //signedCookies property of the request object is provided by the cookie parser. It will automatically parse a signed cookie from the request. If the cookie is not properly signed, it will return a value of False. The user property is something that will be added to the signed cookie.
+  //if(!req.signedCookies.user) { //signedCookies property of the request object is provided by the cookie parser. It will automatically parse a signed cookie from the request. If the cookie is not properly signed, it will return a value of False. The user property is something that will be added to the signed cookie.
+  
+  //Using Expression Session's cookies instead of Cookie-Parser
+  if(!req.session.user) {
     const authHeader= req.headers.authorization;
     if(!authHeader) {//If authHeader is null, this means the user has not placed a username or password in.
       const err= new Error("You are not authenticated!");
@@ -71,7 +92,10 @@ function auth(req, res, next) {
       //The first argument in res.cookie is the name we want to use for the cookie, in this case it is "user"
       //Second argument is value to store in the name property.
       //Third argumnet is optional and contains configuration values. signed: true means we let Express know to use the secret key from Cookie Parser to create a signed cookie.
-        res.cookie("user", "admin", {signed: true});
+        //res.cookie("user", "admin", {signed: true}); <- no longer using res.cookie because we are using Express Session
+        
+        //Session will now know that the username is admin.
+        res.session.user= "admin";//Session will now know that the username is admin.
         return next(); //The user is authorized to use the server
     } else { //An error shows if the user doesn't type admin and password for the username and password
         const err = new Error("You are not authenticated!"); //Goes to the Express error handler
@@ -80,7 +104,7 @@ function auth(req, res, next) {
         return next(err);
     }
   } else { //If there is a signed cookie in the incoming request
-    if(req.signedCookies.user ==="admin") { //If this is true, grant access to the client to the next middleware function
+    if(req.session.user ==="admin") { //If this is true, grant access to the client to the next middleware function
       return next();//Going to the next middleware function
     } else {
         const err = new Error("You are not authenticated!"); //Goes to the Express error handler
