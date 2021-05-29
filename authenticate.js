@@ -28,7 +28,7 @@ exports.jwtPassport= passport.use(
         opts, //Object with configuration options. We created this, it is named opts.
         (jwt_payload, done) => { //Verify callback function 
             console.log("JWT payload: ", jwt_payload);
-            User.findOne({_id: jwt_payload.id}, (err, user) => {
+            User.findOne({_id: jwt_payload._id}, (err, user) => {
                 if (err) {
                     return done(err, false);
                 } else if (user) {
