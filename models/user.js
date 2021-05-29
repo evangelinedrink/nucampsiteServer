@@ -5,6 +5,14 @@ const Schema= mongoose.Schema;
 //First argument will hold the structure of the user document within the object's properties
  
 const userSchema= new Schema({
+    firstname: {
+        type: String,
+        default: " "
+    },
+    lastname: {
+        type: String,
+        default: " "
+    },
     admin: {
         type: Boolean,
         default:false

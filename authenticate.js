@@ -3,7 +3,7 @@ const LocalStrategy= require("passport-local").Strategy;
 const User= require("./models/user");
 const JwtStrategy= require("passport-jwt").Strategy; //Import JWTStrategy
 const ExtractJwt= require("passport-jwt").ExtractJwt;
-const jwt= require("jsonwebtoken");
+const jwt= require("jsonwebtoken"); //Used to create, sign and verify tokens
 
 const config= require("./config.js");
 
@@ -13,7 +13,7 @@ passport.serializeUser(User.serializeUser()); //Serialization: Take the data and
 passport.deserializeUser(User.deserializeUser()); //De-Serialization
 
 //This is for a user document that will return a Token.
-exports.getToken= user => {
+exports.getToken= function(user) {
     return jwt.sign(user, config.secretKey, {expiresIn: 3600}); //Creates a Token. Sign() method is a part of JSON Web Token will take user object (first argument),  user key string (second argument), configure the token to expire in 3600 seconds, in one hour (third argument). If you don't have hte expiresIn, the token will never expire.
 };
 
@@ -34,11 +34,12 @@ exports.jwtPassport= passport.use(
                 } else if (user) {
                     return done(null, user); //done() callback is a function that is written in the Passport-JWT Module, don't need to write it ourselves.
                 } else { //If we get to this else block, it means there were no errors and no user document was found that matched in the token 
-                    return document(null, false); //There was no error, but false because there was no user found.
+                    return done(null, false); //There was no error, but false because there was no user found.
                 }
             });
         }
     )
 );
+
 
 exports.verifyUser= passport.authenticate("jwt", {session: false});

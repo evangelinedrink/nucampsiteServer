@@ -16,6 +16,7 @@ campsiteRouter.route("/") //The / means for the campsite path
 })*/
 .get((req,res, next)=> {
     Campsite.find()//Static method to query the database.  Will find all the campsites since there is not specific campsite specified in the parenthesis. //Client is asking us to send data for all of the campsites
+    .populate("comments.author") //Tells application that campsite comments is received, find the user document that matches the object id stored in comments.author
     .then(campsites => { //Access the results of the find method as campsites.
         res.statusCode= 200;
         res.setHeader("Content-Type", "application/json"); //Send the request content in JSON form. This parameter has to be set to send the request body in JSON form.
@@ -59,6 +60,7 @@ campsiteRouter.route("/:campsiteId")
 })*/
 .get((req,res, next) => {
     Campsite.findById(req.params.campsiteId)//findById() method is from Mongoose and we will pass it the Id stored in the route parameter (for campsiteId). This Id will get parsed from the HTTP request from whatever the user from the client side typed in as the campsiteId they want to access.
+    .populate("comments.author")
     .then(campsite => { //When the campsiteId is successfully found, the .then will then start working (result from the JavaScript Promise)
        res.statusCode= 200;
        res.setHeader("Content-Type", "application/json");
@@ -102,6 +104,7 @@ campsiteRouter.route("/:campsiteId")
 campsiteRouter.route("/:campsiteId/comments") 
 .get((req,res, next)=> {
     Campsite.findById(req.params.campsiteId)//The client is looking for a single campsite and the campsite id has been given as a route parameter. Always look at the documentation for libraries to understand what each part means. 
+    .populate("comments.author")
     .then(campsite => { //Access the results of the find method as campsites.
         //Getting just one campsite, not all the campsite
         if (campsite) {
@@ -121,6 +124,7 @@ campsiteRouter.route("/:campsiteId/comments")
     .then(campsite => { //Access the results of the find method as campsites.
         //Getting just one campsite, not all the campsite
         if (campsite) {
+            req.body.author= req.user._id; //When comment is saved, it will have the ID of the user.  This adds the current user's _id to author field when a new comment is added.
             campsite.comments.push(req.body); //Adding the comment for the campsite in the comment's array, which is found in the req.body. This will only change the comments array in the application's memory, not in the comments subdocument in the MongoDB's database.
             campsite.save() //Saves the new comment in the comment's array located in the MongoDB's database (in the comment's subdocument). This is not a static method (it does create an object, an array).
             .then(campsite => { //.save() method above returns a Promise, so we can connect a .then method if the Promise is fulfilled.   
@@ -176,6 +180,7 @@ campsiteRouter.route("/:campsiteId/comments")
 campsiteRouter.route("/:campsiteId/comments/:commentId") //This will handle request for a specific comment for a certain campsite
 .get((req,res, next)=> {
     Campsite.findById(req.params.campsiteId)//The client is looking for a single campsite and the campsite id has been given as a route parameter. Always look at the documentation for libraries to understand what each part means. 
+    .populate("comments.author")
     .then(campsite => { //Access the results of the find method as campsites.
         //Getting just one campsite, not all the campsite
         if (campsite && campsite.comments.id(req.params.commentId)) {
