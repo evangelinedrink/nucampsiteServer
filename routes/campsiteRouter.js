@@ -205,15 +205,51 @@ campsiteRouter.route("/:campsiteId/comments/:commentId") //This will handle requ
 })
 .put(authenticate.verifyUser, (req,res, next)=> { //PUT request updates existing data. In this case, PUT request will update the comment by letting the user update the comment text and the rating fields.
         Campsite.findById(req.params.campsiteId)//The client is looking for a single campsite and the campsite id has been given as a route parameter. Always look at the documentation for libraries to understand what each part means. 
-        .then(campsite => { //Access the results of the find method as campsites.
+        .then(campsite => { //Access the results of the find method as campsites. 
+            
+            //Ensures that the author of the comment is the same as the user's ID (user is that particular comment's author)
+            if (req.body.author.equals(req.user._id)) { //Object Ids act like Strings, so when comparing two Object Ids, you have to use the equals() method, id1.equals(id2).
+                //Getting just one campsite, not all the campsite
+                if (campsite && campsite.comments.id(req.params.commentId)) {
+                    if (req.body.rating) { //Rating for the comment can be changed. Separate if statements because both of them will be checked at a time. The user might only change one of these (either comment or rating), so we need two if statements.
+                        campsite.comments.id(req.params.commentId).rating= req.body.rating;
+                    }
+                    if (req.body.text) { //The comment can be modified. Separate if statements because both of them will be checked at a time. The user might only change one of these (either comment or rating), so we need two if statements.
+                        campsite.comments.id(req.params.commentId).text = req.body.text;
+                    }
+                    campsite.save() //Saves the changes in the comments on the MongoDB database.
+                    .then(campsite => { //If the save() operation succeeds, it will send back a response back to the client.
+                        res.statusCode= 200;
+                        res.setHeader("Content-Type", "application/json");
+                        res.json(campsite);
+                    }) 
+                    .catch(err => next(err)); //Catches any errors if the save() method does not succeed.
+                } else if (!campsite) { //This else if block is if there is no campsite
+                    err= new Error(`Campsite ${req.params.campsiteId} not found`);
+                    err.status= 404;
+                    return next (err);
+                } else {
+                    err= new Error(`Comment ${req.params.commentId} not found`);
+                    err.status= 404;
+                    return next (err);
+                }   
+            } else { //If the user is not the person who submitted the comment, they won't be able to edit it (the code below will run).
+                err= new Error("You are not authorized to edit this comment.");
+                err.status= 403;
+                return next (err);
+            }
+        })
+        .catch(err => next(err));//Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
+})
+.delete(authenticate.verifyUser, (req, res, next)=> { //next() method is used for error handling
+    Campsite.findById(req.params.campsiteId)//The client is looking for a single campsite and the campsite id has been given as a route parameter. Always look at the documentation for libraries to understand what each part means. 
+    .then(campsite => { //Access the results of the find method as campsites.
+        
+        //Ensures that the author of the comment is the same as the user's ID (user is that particular comment's author)
+        if (req.body.author.equals(req.user._id)) { //Object Ids act like Strings, so when comparing two Object Ids, you have to use the equals() method, id1.equals(id2).
             //Getting just one campsite, not all the campsite
             if (campsite && campsite.comments.id(req.params.commentId)) {
-                if (req.body.rating) { //Rating for the comment can be changed. Separate if statements because both of them will be checked at a time. The user might only change one of these (either comment or rating), so we need two if statements.
-                    campsite.comments.id(req.params.commentId).rating= req.body.rating;
-                }
-                if (req.body.text) { //The comment can be modified. Separate if statements because both of them will be checked at a time. The user might only change one of these (either comment or rating), so we need two if statements.
-                    campsite.comments.id(req.params.commentId).text = req.body.text;
-                }
+            campsite.comments.id(req.params.commentId).remove();
                 campsite.save() //Saves the changes in the comments on the MongoDB database.
                 .then(campsite => { //If the save() operation succeeds, it will send back a response back to the client.
                     res.statusCode= 200;
@@ -229,30 +265,10 @@ campsiteRouter.route("/:campsiteId/comments/:commentId") //This will handle requ
                 err= new Error(`Comment ${req.params.commentId} not found`);
                 err.status= 404;
                 return next (err);
-            }   
-        })
-        .catch(err => next(err));//Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
-})
-.delete(authenticate.verifyUser, (req, res, next)=> { //next() method is used for error handling
-    Campsite.findById(req.params.campsiteId)//The client is looking for a single campsite and the campsite id has been given as a route parameter. Always look at the documentation for libraries to understand what each part means. 
-    .then(campsite => { //Access the results of the find method as campsites.
-        //Getting just one campsite, not all the campsite
-        if (campsite && campsite.comments.id(req.params.commentId)) {
-           campsite.comments.id(req.params.commentId).remove();
-            campsite.save() //Saves the changes in the comments on the MongoDB database.
-            .then(campsite => { //If the save() operation succeeds, it will send back a response back to the client.
-                res.statusCode= 200;
-                res.setHeader("Content-Type", "application/json");
-                res.json(campsite);
-            }) 
-            .catch(err => next(err)); //Catches any errors if the save() method does not succeed.
-        } else if (!campsite) { //This else if block is if there is no campsite
-            err= new Error(`Campsite ${req.params.campsiteId} not found`);
-            err.status= 404;
-            return next (err);
-        } else {
-            err= new Error(`Comment ${req.params.commentId} not found`);
-            err.status= 404;
+            }
+        } else { //If the user is not the person who submitted the comment, they won't be able to delete it (the code below will run).
+            err= new Error("You are not authorized to delete this comment.");
+            err.status= 403;
             return next (err);
         }   
     })
