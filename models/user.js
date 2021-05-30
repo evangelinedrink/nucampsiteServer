@@ -20,6 +20,7 @@ const userSchema= new Schema({
 });
 
 //Plug in the plugin for Passport-Local-Mongoose
+
 userSchema.plugin(passportLocalMongoose); 
 
 //The object below was used when Passport-Local-Mongoose wasn't being used.
