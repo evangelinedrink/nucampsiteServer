@@ -5,14 +5,22 @@ const authenticate= require("../authenticate");
 const router = express.Router();
 
 /* GET users listing. */
-router.get('/', authenticate.verifyAdmin, function(req, res, next) { //only admin users can access this GET request (because of the authenticate.verifyAdmin) 
-    res.send(User.find()); //Give admins access to all the users documents. Using the find() method to retrieve all the documents of a collection: https://kb.objectrocket.com/mongo-db/mongoose-find-all-818 
+router.get('/', authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => { //only admin users can access this GET request (because of the authenticate.verifyAdmin) 
+    //res.send(User.find()); //Give admins access to all the users documents. Using the find() method to retrieve all the documents of a collection: https://kb.objectrocket.com/mongo-db/mongoose-find-all-818 
     if(!req.user.admin) { //If the user is not an admin, the below error will be displayed
         const err= new Error("You are not an admin, thus you don't get access to these documents.");
         err.status= 401;
         return next(err);
-    }
-});
+    } else {
+        User.find() //Give admins access to all the users documents. Using the find() method to retrieve all the documents of a collection: https://kb.objectrocket.com/mongo-db/mongoose-find-all-818 
+        //.find() method returns a JavaScript promise, what to do with the promise when it works and doesn't work is shown below.
+        .then( userInformation => { //When JavaScript Promise is successful.
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(userInformation);
+        })
+        .catch(err => next(err)); //When JavaScript Promise is not successful.
+}});
 
 router.post("/signup", (req, res) => {
     User.register(
@@ -74,6 +82,9 @@ router.get("/logout", (req, res, next) => {
       req.session.destroy();
       res.clearCookie("session-id"); //Clears the cookie that was stored in the client. The name "session-id" was activated in the app.js file
       res.redirect("/"); //Redirects user to the root path, which is local host 3000
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      res.json("You have successfully logged out!");
   } else { //Client is asking to be logged out without being logged in
       const err= new Error("You are not logged in!");
       err.status= 401;
