@@ -8,12 +8,17 @@ var app = require('../app');
 var debug = require('debug')('nucampsiteserver:server');
 var http = require('http');
 
+const https= require("https"); //Obtaining HTTPS in our server
+const fs= require("fs"); //Obtaining the File System module
+
+
 /**
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3000');
+var port = normalizePort(process.env.PORT || '3000');  //Port 3000 is normally used in development. In a standard web server, HTTP server will run in port 80. HTTPS server will run in port 443.
 app.set('port', port);
+app.set("secPort", port+443) //app.set method is a way to set a variable thta can be accessed anywhere in the Express application, with its corresponding method (app.get). In this line, we will run the HTTPS server in port 443. +443 will be added to the 3000 server.
 
 /**
  * Create HTTP server.
@@ -28,6 +33,24 @@ var server = http.createServer(app);
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
+
+//Adding the HTTPS Server (Create HTTPS Server)
+const options= {
+  //Setting up the private key
+  key: fs.readFileSync(__dirname+"/server.key"), //__dirname (two underscores before dirname) points to the current directory, which is the bin directory for this file, it reads into the contents of the server.key file
+  cert: fs.readFileSync(__dirname+"/server.cert") //Setting up the certificate
+};
+
+//Object's object to configure our server
+const secureServer= https.createServer(options,app);
+
+//Way to start server listening for HTTPS. Listen on provided port, on all network interfaces.
+secureServer.listen(app.get("secPort"), () => {  //Secure Server will start listening on port 3443
+  console.log("Server listening on port", app.get("secPort"));
+}); 
+secureServer.on('error', onError);
+secureServer.on('listening', onListening);
+
 
 /**
  * Normalize a port into a number, string, or false.

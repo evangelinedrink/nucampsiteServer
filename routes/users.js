@@ -6,7 +6,6 @@ const router = express.Router();
 
 /* GET users listing. */
 router.get('/', authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => { //only admin users can access this GET request (because of the authenticate.verifyAdmin) 
-    //res.send(User.find()); //Give admins access to all the users documents. Using the find() method to retrieve all the documents of a collection: https://kb.objectrocket.com/mongo-db/mongoose-find-all-818 
     if(!req.user.admin) { //If the user is not an admin, the below error will be displayed
         const err= new Error("You are not an admin, thus you don't get access to these documents.");
         err.status= 401;

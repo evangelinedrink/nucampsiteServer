@@ -39,6 +39,16 @@ connect.then(() => console.log("Connected correctly to server"),
 
 var app = express();
 
+//Redirect traffic from the HTTP port to the HTTPS port.
+app.all("*", (req, res, next) => {  //app.all() catches every type of request that comes into a server (be it GET, PUT, POST, DELETE). We put a wildcard (represented by "*") to get every request in all the paths that passes by the server.
+    if (req.secure) { //req.secure property is set automatically as True by Express when the connection that the request was sent over is through HTTPS. If so, then we simply pass control to the next middleware function by saying return next() [in the line below].
+        return next();
+    } else { //If the connection is not HTTPS, we will enter this else block.
+        console.log(`Redirecting to: https://${req.hostname}:${app.get("secPort")}${req.url}`);
+        res.redirect(301, `https://${req.hostname}:${app.get("secPort")}${req.url}`); //The 301 means permanently redirect
+    }
+}); 
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
