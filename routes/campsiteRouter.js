@@ -1,6 +1,7 @@
 const express = require("express");
 const Campsite = require("../models/campsite"); //../ lets the computer know to go up one folder 
 const authenticate= require("../authenticate"); //Control routes with authentication, protecting the campsiteRouter with code from authenticate.js
+const cors= require("./cors"); // ./ is needed because if you don't have ./, then node will think we are importing the cors module from the node_modules folder. Here we are importing the cors module that was created in the Routes folder
 const campsiteRouter= express.Router();
 
 /*Verify that the user is authenticated for every endpoint in this router, except for the Get endpoints.  Get request is a simple read only operation, it doesn't change anything in the server side. 
@@ -9,12 +10,13 @@ This will be done using the authenticate.verifyUser parameter.*/
 //Methods have been chained together by using the .router("/") method.
 //The path is already set by the .route("/"), which is why we don't have the path argument for each of these HTTP verbs.
 campsiteRouter.route("/") //The / means for the campsite path
+.options(cors.corsWithOptions, (req, res) => res.sendStatus(200)) //This will handle a Preflight Request. Anytime a client needs to Preflights a request, it will send a request with the HTTP options method. Then the client will wait for the server to respond with information on what kind of request it will accept.
 /*.all((req, res, next) => {
     res.statusCode= 200;
     res.setHeader("Content-Type", "text/plain");
     next(); //Pass control of the application routing to the next routing method after this one.
 })*/
-.get((req,res, next)=> {
+.get(cors.cors, (req,res, next)=> { //Inserting cors middleware with cors.cors
     Campsite.find()//Static method to query the database.  Will find all the campsites since there is not specific campsite specified in the parenthesis. //Client is asking us to send data for all of the campsites
     .populate("comments.author") //Tells application that campsite comments is received, find the user document that matches the object id stored in comments.author
     .then(campsites => { //Access the results of the find method as campsites.
@@ -25,7 +27,7 @@ campsiteRouter.route("/") //The / means for the campsite path
     //res.end("Will send all the campsites to you");  //Just shows that we can access this code for now
     .catch(err => next(err)); //Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
 })
-.post(authenticate.verifyUser, authenticate.verifyAdmin, (req,res, next) => {
+.post(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req,res, next) => { //Inserting custom cors middleware to use the whitelist
     Campsite.create(req.body) //Create a new campsite document and save it to the MongoDB server. Create this document with the req.body, which should contain the information of the campsite to Post from the client. Through this create() method, Mongoose will make sure that it fits the schema that was defined.
     .then(campsite => { //The create() method will return a JavaScript Promise, so we can use .then() method to handle a fulfilled Promise.
         console.log("Campsite Created ", campsite); //campsite will hold information about the document that was posted. Inside of this console.log, we will get information about the campsite
@@ -36,11 +38,11 @@ campsiteRouter.route("/") //The / means for the campsite path
     })
     .catch(err => next(err));//Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
 })
-.put(authenticate.verifyUser, (req,res)=> { //This handler will be left as is because PUT is not allowed. 
+.put(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req,res)=> { //This handler will be left as is because PUT is not allowed. 
     res.statusCode= 403;
     res.end("PUT operation not supported on /campsites");
 })
-.delete(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next)=> { //next() method is used for error handling. Only verified Admin users can delete posts (because of the authenticate.verifyAdmin)
+.delete(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next)=> { //next() method is used for error handling. Only verified Admin users can delete posts (because of the authenticate.verifyAdmin)
     //res.end("Deleting all campsites");
     Campsite.deleteMany() //Using the deleteMany() static method which will pass in an empty parameter list, which will result in every document in the campsite's collection to be deleted.
     .then(response => { //Access the return value of the deleteMany() method, which will give us information about the response object about how many documents were deleted.
@@ -53,12 +55,13 @@ campsiteRouter.route("/") //The / means for the campsite path
 
 //Adding a new Express Router for the /:campsiteId route parameter (this specifies which campsite based on its ID). These are endpoints for a specific campsite based on the campsite's ID.
 campsiteRouter.route("/:campsiteId")
+.options(cors.corsWithOptions, (req, res) => res.sendStatus(200)) //This will handle a Preflight Request. Anytime a client needs to Preflights a request, it will send a request with the HTTP options method. Then the client will wait for the server to respond with information on what kind of request it will accept.
 /*.all((req, res, next) => {
     res.statusCode= 200;
     res.setHeader("Content-Type", "text/plain");
     next();
 })*/
-.get((req,res, next) => {
+.get(cors.cors, (req,res, next) => {
     Campsite.findById(req.params.campsiteId)//findById() method is from Mongoose and we will pass it the Id stored in the route parameter (for campsiteId). This Id will get parsed from the HTTP request from whatever the user from the client side typed in as the campsiteId they want to access.
     .populate("comments.author")
     .then(campsite => { //When the campsiteId is successfully found, the .then will then start working (result from the JavaScript Promise)
@@ -69,11 +72,11 @@ campsiteRouter.route("/:campsiteId")
     .catch(err => next(err)); //Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
     //res.end(`Will send details of the campsite: ${req.params.campsiteId} to you.`);
 })
-.post(authenticate.verifyUser, (req,res) => {
+.post(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req,res) => {
     res.statusCode=403;
     res.end(`POST operation not supported on /campsites/${req.params.campsiteId}.`);
 })
-.put(authenticate.verifyUser, authenticate.verifyAdmin, (req,res, next) => {
+.put(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req,res, next) => {
     //Below the first parameter is the campsite id (req.params.campsiteId), the second argument is the data from the request body ($set: req.body)
     //Third parameter is {new:true}, so that we get back information about the updated document.
     Campsite.findByIdAndUpdate(req.params.campsiteId, {
@@ -89,7 +92,7 @@ campsiteRouter.route("/:campsiteId")
     //Below is just placeholder code
     //res.write(`Updating the campsite: ${req.params.campsiteId}\n`);
     //res.end(`Will update the campsite: ${req.body.name} with description: ${req.body.description}`);
-.delete(authenticate.verifyUser, authenticate.verifyAdmin, (req,res, next) => {
+.delete(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req,res, next) => {
     //Method used for deleting a single campsite by its ID is called: findByIdAndDelete() method
     Campsite.findByIdAndDelete(req.params.campsiteId) //req.params.campsiteId is the saved route parameter that has the information on the campsite's ID
     .then(response => { //When the campsiteId is successfully found, the .then will then start working (result from the JavaScript Promise)
@@ -102,7 +105,8 @@ campsiteRouter.route("/:campsiteId")
 
 //Endpoinds for /:campsiteId/comments
 campsiteRouter.route("/:campsiteId/comments") 
-.get((req,res, next)=> {
+.options(cors.corsWithOptions, (req, res) => res.sendStatus(200)) //This will handle a Preflight Request. Anytime a client needs to Preflights a request, it will send a request with the HTTP options method. Then the client will wait for the server to respond with information on what kind of request it will accept.
+.get(cors.cors, (req,res, next)=> {
     Campsite.findById(req.params.campsiteId)//The client is looking for a single campsite and the campsite id has been given as a route parameter. Always look at the documentation for libraries to understand what each part means. 
     .populate("comments.author")
     .then(campsite => { //Access the results of the find method as campsites.
@@ -119,7 +123,7 @@ campsiteRouter.route("/:campsiteId/comments")
     })
     .catch(err => next(err));//Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
 })
-.post(authenticate.verifyUser, (req,res, next) => {
+.post(cors.corsWithOptions, authenticate.verifyUser, (req,res, next) => {
     Campsite.findById(req.params.campsiteId)//The client is looking for a single campsite and the campsite id has been given as a route parameter. Always look at the documentation for libraries to understand what each part means. 
     .then(campsite => { //Access the results of the find method as campsites.
         //Getting just one campsite, not all the campsite
@@ -141,11 +145,11 @@ campsiteRouter.route("/:campsiteId/comments")
     })
     .catch(err => next(err));//Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
 })
-.put(authenticate.verifyUser, (req,res)=> { //This handler will be left as is because PUT is not allowed. 
+.put(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req,res)=> { //This handler will be left as is because PUT is not allowed. 
     res.statusCode= 403;
     res.end(`PUT operation not supported on /campsites/${req.params.campsiteId}/comments`);
 })
-.delete(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next)=> { //next() method is used for error handling
+.delete(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next)=> { //next() method is used for error handling
     Campsite.findById(req.params.campsiteId)//The client is looking for a single campsite and the campsite id has been given as a route parameter. Always look at the documentation for libraries to understand what each part means. 
     .then(campsite => { //Access the results of the find method as campsites.
         //Getting just one campsite, not all the campsite
@@ -178,7 +182,8 @@ campsiteRouter.route("/:campsiteId/comments")
 
 //Endpoinds for /:campsiteId/comments/:commentId
 campsiteRouter.route("/:campsiteId/comments/:commentId") //This will handle request for a specific comment for a certain campsite
-.get((req,res, next)=> {
+.options(cors.corsWithOptions, (req, res) => res.sendStatus(200)) //This will handle a Preflight Request. Anytime a client needs to Preflights a request, it will send a request with the HTTP options method. Then the client will wait for the server to respond with information on what kind of request it will accept.
+.get(cors.cors, (req,res, next)=> {
     Campsite.findById(req.params.campsiteId)//The client is looking for a single campsite and the campsite id has been given as a route parameter. Always look at the documentation for libraries to understand what each part means. 
     .populate("comments.author")
     .then(campsite => { //Access the results of the find method as campsites.
@@ -199,11 +204,11 @@ campsiteRouter.route("/:campsiteId/comments/:commentId") //This will handle requ
     })
     .catch(err => next(err));//Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
 })
-.post(authenticate.verifyUser, (req,res) => { //Post is not supported for the comment's Id
+.post(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req,res) => { //Post is not supported for the comment's Id
    res.statusCode= 403;
    res.end(`POST operation not supported on /campsites/${req.params.campsiteId}/comments/${req.params.commentId}`);
 })
-.put(authenticate.verifyUser, (req,res, next)=> { //PUT request updates existing data. In this case, PUT request will update the comment by letting the user update the comment text and the rating fields.
+.put(cors.corsWithOptions, authenticate.verifyUser, (req,res, next)=> { //PUT request updates existing data. In this case, PUT request will update the comment by letting the user update the comment text and the rating fields.
         Campsite.findById(req.params.campsiteId)//The client is looking for a single campsite and the campsite id has been given as a route parameter. Always look at the documentation for libraries to understand what each part means. 
         .then(campsite => { //Access the results of the find method as campsites. 
             
@@ -241,7 +246,7 @@ campsiteRouter.route("/:campsiteId/comments/:commentId") //This will handle requ
         })
         .catch(err => next(err));//Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
 })
-.delete(authenticate.verifyUser, (req, res, next)=> { //next() method is used for error handling
+.delete(cors.corsWithOptions, authenticate.verifyUser, (req, res, next)=> { //next() method is used for error handling
     Campsite.findById(req.params.campsiteId)//The client is looking for a single campsite and the campsite id has been given as a route parameter. Always look at the documentation for libraries to understand what each part means. 
     .then(campsite => { //Access the results of the find method as campsites.
         

@@ -1,6 +1,7 @@
 const express= require ("express"); //Import Express
 const authenticate= require("../authenticate");
 const multer= require("multer"); //Import Multer middleware
+const cors= require("./cors"); // ./ is needed because if you don't have ./, then node will think we are importing the cors module from the node_modules folder. Here we are importing the cors module that was created in the Routes folder
 
 //Setting up some custom configuration on how Multer handles file uploads (we could leave this out and use default values that Multer has).
 //Customizing the storage (we will be using diskStorage, which is in Multer.)
@@ -29,24 +30,25 @@ const uploadRouter= express.Router();
 
 //Configure the uploadRouter to handle the various HTTP requests (such as GET, POST, DELETE, PUT).
 uploadRouter.route("/")
-.get(authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {  //Series of middleware as arguments. The final callback function will handle the response. The callback funtion has parameters (req and res)
+.options(cors.corsWithOptions, (req, res) => res.sendStatus(200)) //This will handle a Preflight Request. Anytime a client needs to Preflights a request, it will send a request with the HTTP options method. Then the client will wait for the server to respond with information on what kind of request it will accept.
+.get(cors.cors, authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {  //Series of middleware as arguments. The final callback function will handle the response. The callback funtion has parameters (req and res)
     res.statusCode= 403;
     res.end("GET operation not supported on /imageUpload."); //Send back a response to the client. /imageUpload is the path that will be used. 
 }) 
-.post(authenticate.verifyUser, authenticate.verifyAdmin, upload.single("imageFile"), (req, res) => {  //Series of middleware as arguments. Adding the multer middleware before the callback function. This is done by using upload.single("imageFile").  The single means we are expecting a single file whose input field name is "imageFile". When the client uploads a file to the server, Multer will take over and handle processing it and errors. Once Multer is finished (this means file has successfully uploaded), the callback function will handle the response. The callback funtion has parameters (req and res)
+.post(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, upload.single("imageFile"), (req, res) => {  //Series of middleware as arguments. Adding the multer middleware before the callback function. This is done by using upload.single("imageFile").  The single means we are expecting a single file whose input field name is "imageFile". When the client uploads a file to the server, Multer will take over and handle processing it and errors. Once Multer is finished (this means file has successfully uploaded), the callback function will handle the response. The callback funtion has parameters (req and res)
     res.statusCode= 200;
     res.setHeader("Content-Type", "application/json"); //Setting a header (this content-type and application/json is needed)
     res.json(req.file);//Multer adds an object to the request object named file and the file object will contain additional information about the file. This information will be sent back to the client. This will confirm to the client that the file has been received correctly.
     //req.file in the line above contains the fieldname, originalname, encoding type, mimetype, destination, filename, path and size
 })
-.put(authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {  //Series of middleware as arguments. The final callback function will handle the response. The callback funtion has parameters (req and res)
+.put(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {  //Series of middleware as arguments. The final callback function will handle the response. The callback funtion has parameters (req and res)
     res.statusCode= 403;
     res.end("PUT operation not supported on /imageUpload."); //Send back a response to the client. /imageUpload is the path that will be used. 
 })
-.delete(authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {  //Series of middleware as arguments. The final callback function will handle the response. The callback funtion has parameters (req and res)
+.delete(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {  //Series of middleware as arguments. The final callback function will handle the response. The callback funtion has parameters (req and res)
     res.statusCode= 403;
     res.end("DELETE operation not supported on /imageUpload."); //Send back a response to the client. /imageUpload is the path that will be used. 
-})
+});
 
 
 //Export this uploadRouter

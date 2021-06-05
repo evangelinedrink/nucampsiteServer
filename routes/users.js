@@ -2,10 +2,11 @@ const express = require('express');
 const User= require("../models/user"); //Going up one directory, so need to use ../
 const passport= require("passport"); //Importing Passport
 const authenticate= require("../authenticate");
+const cors= require("./cors"); // ./ is needed because if you don't have ./, then node will think we are importing the cors module from the node_modules folder. Here we are importing the cors module that was created in the Routes folder
 const router = express.Router();
 
 /* GET users listing. */
-router.get('/', authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => { //only admin users can access this GET request (because of the authenticate.verifyAdmin) 
+router.get('/', cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => { //only admin users can access this GET request (because of the authenticate.verifyAdmin) 
     if(!req.user.admin) { //If the user is not an admin, the below error will be displayed
         const err= new Error("You are not an admin, thus you don't get access to these documents.");
         err.status= 401;
@@ -21,7 +22,7 @@ router.get('/', authenticate.verifyUser, authenticate.verifyAdmin, (req, res, ne
         .catch(err => next(err)); //When JavaScript Promise is not successful.
 }});
 
-router.post("/signup", (req, res) => {
+router.post("/signup", cors.corsWithOptions, (req, res) => {
     User.register(
         new User({username: req.body.username}), //the {username: req.body.username} is the username that was given by the client
         req.body.password, //the {password: req.body.password} is the password that was given by the client
@@ -57,7 +58,7 @@ router.post("/signup", (req, res) => {
     );
 });
 
-router.post('/login', passport.authenticate('local'), (req, res) => {
+router.post('/login', cors.corsWithOptions, passport.authenticate('local'), (req, res) => {
     const token = authenticate.getToken({_id: req.user._id});
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
@@ -76,7 +77,7 @@ router.post('/login', passport.authenticate('local'), (req, res) => {
 
 
 //This is for logging out the user. Get() method is used because the client isn't submitting any information to the server, they are just saying I'm logging out.
-router.get("/logout", (req, res, next) => {
+router.get("/logout", cors.corsWithOptions, (req, res, next) => {
   if (req.session) {
       req.session.destroy();
       res.clearCookie("session-id"); //Clears the cookie that was stored in the client. The name "session-id" was activated in the app.js file

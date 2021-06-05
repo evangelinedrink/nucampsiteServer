@@ -1,13 +1,15 @@
 const express= require("express");
 const Promotion = require("../models/promotion"); //Importing the Promotion model to this file. ../ lets the computer know to go up one folder 
 const authenticate= require("../authenticate"); //Control routes with authentication, protecting the campsiteRouter with code from authenticate.js
+const cors= require("./cors"); // ./ is needed because if you don't have ./, then node will think we are importing the cors module from the node_modules folder. Here we are importing the cors module that was created in the Routes folder
 const promotionRouter= express.Router();
 
 /*Verify that the user is authenticated for every endpoint in this router, except for the Get endpoints.  Get request is a simple read only operation, it doesn't change anything in the server side. 
 This will be done using the authenticate.verifyUser parameter.*/
 
 promotionRouter.route("/")
-.get((req, res, next)=> {
+.options(cors.corsWithOptions, (req, res) => res.sendStatus(200)) //This will handle a Preflight Request. Anytime a client needs to Preflights a request, it will send a request with the HTTP options method. Then the client will wait for the server to respond with information on what kind of request it will accept.
+.get(cors.cors, (req, res, next)=> {
     Promotion.find() //Static method to query the database.  Will find all the partners since there is no promotion specified in the parenthesis. Client is asking us to send data for all of the promotions
     .then(promotions => {
         res.statusCode= 200;
@@ -16,7 +18,7 @@ promotionRouter.route("/")
     })
     .catch(err => next(err)); //Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
 })
-.post(authenticate.verifyUser, authenticate.verifyAdmin, (req,res, next) => {
+.post(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req,res, next) => {
     Promotion.create(req.body) //Create a new promotion document and save it to the MongoDB server. Create this document with the req.body, which should contain the information of the promotion to Post from the client. Through this create() method, Mongoose will make sure that it fits the schema that was defined.
     .then(promotion => { //The create() method will return a JavaScript Promise, so we can use .then() method to handle a fulfilled Promise.
         console.log("Promotion Created", promotion);  //promotion will hold information about the document that was posted. Inside of this console.log, we will get information about the promotion.
@@ -26,11 +28,11 @@ promotionRouter.route("/")
     })
     .catch(err => next(err)); //Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
 })
-.put(authenticate.verifyUser, (req,res)=> {
+.put(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req,res)=> {
     res.statusCode= 403;
     res.end("PUT operation not supported on /promotions");
 })
-.delete(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next)=> {
+.delete(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next)=> {
     Promotion.deleteMany() //Using the deleteMany() static method which will pass in an empty parameter list (nothing in parenthesis), which will result in every document in the promotion's collection to be deleted.
     .then(response => { //Access the return value of the deleteMany() method, which will give us information about the response object about how many documents were deleted.
         res.statusCode= 200;
@@ -43,7 +45,8 @@ promotionRouter.route("/")
 
 //Adding a new Express Router for the /:promotionId route parameter
 promotionRouter.route("/:promotionId")
-.get((req,res, next) => {
+.options(cors.corsWithOptions, (req, res) => res.sendStatus(200)) //This will handle a Preflight Request. Anytime a client needs to Preflights a request, it will send a request with the HTTP options method. Then the client will wait for the server to respond with information on what kind of request it will accept.
+.get(cors.cors, (req,res, next) => {
     Promotion.findById(req.params.promotionId) //findById() method is from Mongoose and we will pass it the Id stored in the route parameter (for partnerId). This Id will get parsed from the HTTP request from whatever the user from the client side typed in as the partnerId they want to access.
     .then(promotion => {
         res.statusCode= 200;
@@ -52,11 +55,11 @@ promotionRouter.route("/:promotionId")
     })
     .catch(err => next(err));
 })
-.post(authenticate.verifyUser, (req,res) => {
+.post(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req,res) => {
     res.statusCode=403;
     res.end(`POST operation not supported on /promotions/${req.params.promotionId}.`);
 })
-.put(authenticate.verifyUser, authenticate.verifyAdmin, (req,res, next) => {
+.put(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req,res, next) => {
     //Below the first parameter is the promotion id (req.params.promotionId), the second argument is the data from the request body ($set: req.body)
     //Third parameter is {new:true}, so that we get back information about the updated document.
     Promotion.findByIdAndUpdate(req.params.promotionId, { //req.params.promotionId is the saved route parameter that has the information on the promotion's ID
@@ -69,7 +72,7 @@ promotionRouter.route("/:promotionId")
     })
     .catch(err => next(err)); //Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
 })
-.delete(authenticate.verifyUser, authenticate.verifyAdmin, (req,res, next) => {
+.delete(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req,res, next) => {
     //Method used for deleting a single promotion by its ID is called: findByIdAndDelete() method
     Promotion.findByIdAndDelete(req.params.promotionId) //req.params.promotionId is the saved route parameter that has the information on the promotion's ID
     .then(response => { //When the promotionId is successfully found, the .then will then start working (result from the JavaScript Promise)
