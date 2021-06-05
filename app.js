@@ -13,10 +13,11 @@ const config= require("./config");
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 
-//Adding the three new routers that was created in class (routers found in the router folder)
+//Adding the new routers that was created in class (routers found in the router folder)
 const campsiteRouter= require("./routes/campsiteRouter");
 const promotionRouter= require("./routes/promotionRouter");
 const partnerRouter= require("./routes/partnerRouter");
+const uploadRouter= require("./routes/uploadRouter"); //Adding the router to this file
 
 //Connecting Express Server to MongoDB and Mongoose (lines 17-32)
 //Require Mongoose module
@@ -106,10 +107,13 @@ app.use(auth); //Lets the auth middleware function run before the Express.static
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-//Add the calls for the three routers, this will be used to call the routes on Postman using "http://localhost:3000/campsites"
+//Add the calls for the routers, this will be used to call the routes on Postman using "http://localhost:3000/campsites"
+//Specifying the router's paths that they handle.
 app.use("/campsites", campsiteRouter);
 app.use("/promotions", promotionRouter);
 app.use("/partners", partnerRouter);
+app.use("/imageUpload", uploadRouter);
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
