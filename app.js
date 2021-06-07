@@ -18,6 +18,7 @@ const campsiteRouter= require("./routes/campsiteRouter");
 const promotionRouter= require("./routes/promotionRouter");
 const partnerRouter= require("./routes/partnerRouter");
 const uploadRouter= require("./routes/uploadRouter"); //Adding the router to this file
+const favoriteRouter= require("./routes/favoriteRouter"); //Importing the favoriteRouter
 
 //Connecting Express Server to MongoDB and Mongoose (lines 17-32)
 //Require Mongoose module
@@ -113,6 +114,7 @@ app.use("/campsites", campsiteRouter);
 app.use("/promotions", promotionRouter);
 app.use("/partners", partnerRouter);
 app.use("/imageUpload", uploadRouter);
+app.use("/favorites", favoriteRouter);
 
 
 // catch 404 and forward to error handler
