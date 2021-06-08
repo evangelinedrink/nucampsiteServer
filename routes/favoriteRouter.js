@@ -130,9 +130,9 @@ favoriteRouter.route("/:campsiteId") //The / means for the favorite path. In thi
     .then(favorite => {
         if(favorite) { //Checking to see if the Favorite document is there
             if(favorite.campsites.indexOf(req.params.campsiteId) !==-1) { //If the campsideId's index number is not equal to -1, this means that the campside Id is in the array (-1 index Id means it is not in the array)
-                favorite.campsites.splice(req.params.campsiteId)  //We get rid of the campsite Id by splicing it out of the array
+                favorite.campsites.splice(req.params.campsiteId, 1)  //We get rid of the campsite Id by splicing it out of the array. The one means we are getting rid of only one campsite from the Favorite document/array.
             }
-            favorite.campsites.save() //Make sure to have the save() method outside of the If statement so that the favorite.campsites array (part of the Favorite document/array) will be saved and updated.
+            favorite.save() //Make sure to have the save() method outside of the If statement so that the favorite array (the Favorite document/array) will be saved and updated.
             .then(favorite => { //This will be returned to the client once the campsite Id has been deleted from the array
                 res.statusCode= 200;
                 res.setHeader("Content-Type", "application/json");

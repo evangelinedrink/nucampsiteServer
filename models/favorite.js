@@ -4,13 +4,15 @@ const Schema= mongoose.Schema; //This is not required, but it is easier to type 
 //Creating a new Mongoose Schema named favoriteSchema, which will contain two fields: user and campsites
 const favoriteSchema= new Schema({
     user: { //Model named user
-        type: mongoose.Schema.Types.ObjectId, //Stores a reference to a user's document
+        type: Schema.Types.ObjectId, //Stores a reference to a user's document
         ref: "User",
     },
     campsites: [{ //Model named campsites.  campsites is enclosed in an array that will contain campsite IDs, each user will have an array of their favorite campsite's IDs.  
-        type: mongoose.Schema.Types.ObjectId, //Stores a reference to a user's document
-        ref: "Campsites",
+        type: Schema.Types.ObjectId, //Stores a reference to a user's document
+        ref: "Campsite",
     }]
+}, {
+    timestamps: true,
 });
 
 //Creating a Model with Mongoose. The model will instantiate new documents for that collection. Model will also enforce structure from Schema and validate documents.
