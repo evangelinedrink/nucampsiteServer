@@ -213,9 +213,9 @@ campsiteRouter.route("/:campsiteId/comments/:commentId") //This will handle requ
         .then(campsite => { //Access the results of the find method as campsites. 
             
             //Ensures that the author of the comment is the same as the user's ID (user is that particular comment's author)
-            if (req.body.author.equals(req.user._id)) { //Object Ids act like Strings, so when comparing two Object Ids, you have to use the equals() method, id1.equals(id2).
-                //Getting just one campsite, not all the campsite
-                if (campsite && campsite.comments.id(req.params.commentId)) {
+            if (campsite && campsite.comments.id(req.params.commentId)) { //Object Ids act like Strings, so when comparing two Object Ids, you have to use the equals() method, id1.equals(id2).
+                //Making sure that the comment's author is the same as the user's ID
+                if ((campsite.comments.id(req.params.commentId).author._id).equals(req.user._id)) {
                     if (req.body.rating) { //Rating for the comment can be changed. Separate if statements because both of them will be checked at a time. The user might only change one of these (either comment or rating), so we need two if statements.
                         campsite.comments.id(req.params.commentId).rating= req.body.rating;
                     }
@@ -229,18 +229,18 @@ campsiteRouter.route("/:campsiteId/comments/:commentId") //This will handle requ
                         res.json(campsite);
                     }) 
                     .catch(err => next(err)); //Catches any errors if the save() method does not succeed.
-                } else if (!campsite) { //This else if block is if there is no campsite
+                } else { //This else if block is if there is no campsite
+                    err= new Error("You are not authorized to update this comment!");
+                    err.status= 403;
+                    return next (err);
+                }
+            } else if (!campsite) {
                     err= new Error(`Campsite ${req.params.campsiteId} not found`);
                     err.status= 404;
-                    return next (err);
-                } else {
-                    err= new Error(`Comment ${req.params.commentId} not found`);
-                    err.status= 404;
-                    return next (err);
-                }   
+                    return next (err);   
             } else { //If the user is not the person who submitted the comment, they won't be able to edit it (the code below will run).
-                err= new Error("You are not authorized to edit this comment.");
-                err.status= 403;
+                err= new Error(`Comment ${req.params.commentId} not found`);
+                err.status= 404;
                 return next (err);
             }
         })
@@ -250,11 +250,11 @@ campsiteRouter.route("/:campsiteId/comments/:commentId") //This will handle requ
     Campsite.findById(req.params.campsiteId)//The client is looking for a single campsite and the campsite id has been given as a route parameter. Always look at the documentation for libraries to understand what each part means. 
     .then(campsite => { //Access the results of the find method as campsites.
         
-        //Ensures that the author of the comment is the same as the user's ID (user is that particular comment's author)
-        if (req.body.author.equals(req.user._id)) { //Object Ids act like Strings, so when comparing two Object Ids, you have to use the equals() method, id1.equals(id2).
-            //Getting just one campsite, not all the campsite
-            if (campsite && campsite.comments.id(req.params.commentId)) {
-            campsite.comments.id(req.params.commentId).remove();
+        //Making sure that there is a campsite and an Id for the campsite's comment.
+        if (campsite && campsite.comments.id(req.params.commentId)) { 
+            //Ensures that the author of the comment is the same as the user's ID (user is that particular comment's author).  Object Ids act like Strings, so when comparing two Object Ids, you have to use the equals() method, id1.equals(id2).
+            if ((campsite.comments.id(req.params.commentId).author._id).equals(req.user._id)) { //Making sure the author's ID is the same as ther user's ID
+                campsite.comments.id(req.params.commentId).remove();
                 campsite.save() //Saves the changes in the comments on the MongoDB database.
                 .then(campsite => { //If the save() operation succeeds, it will send back a response back to the client.
                     res.statusCode= 200;
@@ -262,20 +262,20 @@ campsiteRouter.route("/:campsiteId/comments/:commentId") //This will handle requ
                     res.json(campsite);
                 }) 
                 .catch(err => next(err)); //Catches any errors if the save() method does not succeed.
-            } else if (!campsite) { //This else if block is if there is no campsite
+            } else { //If the user is not the person who submitted the comment, they won't be able to delete it (the code below will run).
+                err = new Error('You are not authorized to delete this comment!');
+                err.status = 403;
+                return next(err);
+            }
+        } else if (!campsite) { //This else if block is if there is no campsite
                 err= new Error(`Campsite ${req.params.campsiteId} not found`);
                 err.status= 404;
                 return next (err);
-            } else {
+        } else {
                 err= new Error(`Comment ${req.params.commentId} not found`);
                 err.status= 404;
                 return next (err);
-            }
-        } else { //If the user is not the person who submitted the comment, they won't be able to delete it (the code below will run).
-            err= new Error("You are not authorized to delete this comment.");
-            err.status= 403;
-            return next (err);
-        }   
+        }  
     })
     .catch(err => next(err));//Catch method to catch any errors. Next(err) will pass off the error to the overall error() handler. Express will decide what to do with the error (already built into Express)
 });  

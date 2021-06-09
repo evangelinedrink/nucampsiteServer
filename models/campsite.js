@@ -6,7 +6,7 @@ require("mongoose-currency").loadType(mongoose);
 const Currency= mongoose.Types.Currency; //Short-hand for Mongoose.Types.Currency
 
 //New Schema to store comments about a campsite
-const commentSchema= new Schema({
+const commentSchema= new Schema({ //The comment on the campsite has its own ID.
     rating: {
         type: Number,
         min: 1,
@@ -18,7 +18,7 @@ const commentSchema= new Schema({
         required: true,
     },
     author: {
-        type: mongoose.Schema.Types.ObjectId, //Stores a reference to a user's document
+        type: Schema.Types.ObjectId, //Stores a reference to a user's document. The author has its own ID thanks to the "Schema.Types.ObjectId".  We are making sure the author's ID is equal to the user's ID.
         ref: "User"
     }
 }, {
@@ -27,7 +27,7 @@ const commentSchema= new Schema({
 
 //Creating a new Schema using Mongoose. The first argument is required, it contains the definition of the schema and is an object.
 //The second argument in the Schema() method is optional and is used for setting various configuration options.
-const campsiteSchema= new Schema({
+const campsiteSchema= new Schema({ //Each campsite has its own ID.
     name: {
         type: String,
         required: true,
